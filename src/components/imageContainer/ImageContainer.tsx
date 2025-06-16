@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useInView, useMotionValue, type PanInfo } from "motion/react";
+import { motion, useInView, useMotionValue, animate, type PanInfo } from "motion/react";
 import useWindowDimensions from "../../hooks/useWindowDimensions";
 import { useDragControls } from "motion/react";
 import styles from "./ImageContainer.module.scss";
@@ -184,47 +184,48 @@ function ImageContainer() {
     });
   };
 
-  // const snapToCenterMotion = () => {
-  //   const isResponsive =
-  //     screenWidth < SCREEN_WIDTHS.DESKTOP && screenWidth > SCREEN_WIDTHS.TABLET;
+  const snapToCenterMotion = () => {
+    const isResponsive =
+      screenWidth < SCREEN_WIDTHS.DESKTOP && screenWidth > SCREEN_WIDTHS.TABLET;
 
-  //   const offsets = {
-  //     selected: screenWidth > SCREEN_WIDTHS.DESKTOP ? 2 : 1,
-  //   };
-  //   animate(xTranslation, 0, {
-  //     type: "spring",
-  //     damping: 20,
-  //     stiffness: 300,
-  //   });
-  //   setIsScrolling(false);
-  // };
+    const offsets = {
+      selected: screenWidth > SCREEN_WIDTHS.DESKTOP ? 2 : 1,
+    };
+    animate(xTranslation, 0, {
+      type: "spring",
+      damping: 20,
+      stiffness: 300,
+    });
+    setIsScrolling(false);
+  };
 
-  // const handleWheelMotion = (e: React.WheelEvent<HTMLDivElement>) => {
-  //   setIsScrolling(true);
-  //   setSelectedImg(null);
 
-  //   const { deltaX } = e;
+  const handleWheelMotion = (e: React.WheelEvent<HTMLDivElement>) => {
+    setIsScrolling(true);
+    setSelectedImg(null);
 
-  //   let current = xTranslation.get();
-  //   current += deltaX * 10;
-  //   console.log(current)
+    const { deltaX } = e;
 
-  //   let controls;
+    let current = xTranslation.get();
+    current += deltaX * 10;
+    console.log(current)
 
-  //   controls = animate(xTranslation, current, {
-  //     ease: "linear",
-  //     duration: 0.3,
-  //   });
+    let controls;
 
-  //   if (scrollTimeout.current) {
-  //     clearTimeout(scrollTimeout.current);
-  //   }
+    controls = animate(xTranslation, current, {
+      ease: "linear",
+      duration: 0.3,
+    });
 
-  //   scrollTimeout.current = window.setTimeout(() => {
-  //     controls.stop();
-  //     snapToCenter();
-  //   }, 150);
-  // };
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+
+    scrollTimeout.current = window.setTimeout(() => {
+      controls.stop();
+      snapToCenter();
+    }, 150);
+  };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     setIsScrolling(true);
@@ -308,8 +309,9 @@ function ImageContainer() {
     <motion.div ref={dragRef} className={styles.imageContainer}>
       <motion.div
         ref={containerRef}
-        onWheel={handleWheel}
+        onWheel={handleWheelMotion}
         className={styles.content}
+        style={{x: xTranslation}}
         animate={{
           x: -translateX,
         }}
@@ -328,7 +330,7 @@ function ImageContainer() {
           controls.start(event);
         }}
       >
-        {images.map((index, i) => {
+        {[...images].map((index, i) => {
           const isSecondToLast = i === images.length - 2;
           return (
             <motion.div
