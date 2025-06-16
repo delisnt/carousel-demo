@@ -1,0 +1,15 @@
+.nav {
+    display: flex;
+    justify-content: space-between;
+    width: 100vw;
+    position: fixed;
+    padding-inline: 1rem;
+    padding-block-start: 0.5rem;
+    border-bottom: 2px solid gray;
+    top: 0;
+}
+
+.inner__nav {
+    display: flex;
+    gap: 1rem;
+}

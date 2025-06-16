@@ -1,0 +1,68 @@
+.imageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.singleImg {
+  display: flex;
+  width: 33.3vw;
+  align-items: center;
+  justify-content: center;
+
+  .singleImg img {
+    object-fit: cover;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+}
+
+
+.content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: fit-content;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  overflow-x: visible;
+}
+
+
+
+@media (width < 1500px) {
+  .singleImg {
+    width: 50vw;
+  }
+}
+
+@media (width < 1025px) {
+  .singleImg {
+    width: 45%;
+  }
+}
+
+@media (width < 769px) {
+  .singleImg {
+    width: 100vw;
+    align-items: center;
+  }
+}
+
+
+@media (width < 600px) {
+  .singleImg {
+    width: 100vw;
+
+    img {
+      width: 100%;
+    }
+  }
+}
+
