@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useInView, useMotionValue, type PanInfo } from "motion/react";
+import { motion, type PanInfo } from "motion/react";
 import useWindowDimensions from "../../hooks/useWindowDimensions";
 import { useDragControls } from "motion/react";
 import styles from "./ImageContainer.module.scss";
@@ -9,7 +9,6 @@ import Image from "./ImgComponent/Image";
 function ImageContainer() {
   const imageArray = Array.from({ length: 10 }, (_, i) => i + 1);
   const controls = useDragControls();
-  // const dragX = useMotionValue(0);
   const screenWidth = useWindowDimensions().width;
   const SCREEN_WIDTHS = {
     MOBILE: 500,
@@ -18,7 +17,6 @@ function ImageContainer() {
     DESKTOP: 1500,
   };
 
-  const xTranslation = useMotionValue(0);
 
   const [images, setImages] = useState(imageArray);
   const [selectedImg, setSelectedImg] = useState<number | null>(null);
@@ -30,6 +28,7 @@ function ImageContainer() {
   const [currentImgWidth, setCurrentImgWidth] = useState<number | null>(null);
   const scrollTimeout = useRef<number | null>(null);
 
+
   const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
   const dragRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef(null);
@@ -37,16 +36,7 @@ function ImageContainer() {
   const selectedImgRef = useRef<number | null>(null);
   const prevImgWidthRef = useRef<number | null>(null);
   const isLoadingRef = useRef(false);
-  const isInView = useInView(lastImageRef, {
-    once: false,
-    amount: 0.3,
-  });
 
-  useEffect(() => {
-    if (isInView) {
-      infiniteLoading();
-    }
-  }, [isInView]);
 
   useEffect(() => {
     const updateWidth = () => {
@@ -145,7 +135,7 @@ function ImageContainer() {
 
     setTimeout(() => {
       setImages((prev) => {
-        if (prev.length > 40 && currentImgWidth) {
+        if (prev.length > 15 && currentImgWidth) {
           console.log(`infinite loading prev:${prev.length}`);
           setTranslateX(0);
           return prev.slice(-5);
@@ -175,8 +165,6 @@ function ImageContainer() {
       let snapped = isResponsive
         ? currentIndex * currentImgWidth - (screenWidth - currentImgWidth) / 2
         : currentIndex * currentImgWidth;
-
-      console.log(`snapped to ${snapped} at index ${currentIndex + 2}`);
 
       setSelectedImg(currentIndex + offsets.selected);
 
