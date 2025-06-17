@@ -8,3 +8,12 @@ export interface ImageProps {
 export type Index = {
     index: number;
 }
+
+export interface ImageType {
+    id: string,
+    author: string,
+    width: number,
+    height: number,
+    download_url: string,
+    url: string
+}
