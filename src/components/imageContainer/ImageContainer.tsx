@@ -1,11 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { motion, useMotionValue, type PanInfo } from "motion/react";
+import {
+  motion,
+  useAnimationFrame,
+  useMotionValue,
+  type PanInfo,
+} from "motion/react";
 import useWindowDimensions from "../../hooks/useWindowDimensions";
 import { useFetch } from "../../hooks/useFetch";
 import { useDragControls } from "motion/react";
 import styles from "./ImageContainer.module.scss";
 import Image from "./ImgComponent/Image";
 import useMeasure from "react-use-measure";
+import { animate } from "motion";
 
 function ImageContainer() {
   // const imageArray = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -19,6 +25,7 @@ function ImageContainer() {
     DESKTOP: 1500,
   };
   const SCROLL_SPEED = 1;
+  const WRAP_MARGIN = 50;
 
   const xTranslation = useMotionValue(0);
 
@@ -28,10 +35,12 @@ function ImageContainer() {
   );
   const [selectedImg, setSelectedImg] = useState<number | null>(-1);
   const [hoveredImg, setHoveredImg] = useState<number | null>(null);
-  // const [_imgIndex, setImgIndex] = useState<number[]>([]);
+  const isAnimatingRef = useRef(false);
+  const [imgIndex, setImgIndex] = useState<number>(1);
   // const [translateX, setTranslateX] = useState<number>(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   // const [currentImgWidth, setCurrentImgWidth] = useState<number | null>(null);
   const scrollTimeout = useRef<number | null>(null);
 
@@ -53,7 +62,8 @@ function ImageContainer() {
 
   useLayoutEffect(() => {
     selectedImgRef.current = selectedImg;
-  }, [selectedImg]);
+    prevSelectedImgRef.current = selectedImg;
+  }, [selectedImg, prevSelectedImgRef]);
 
   useLayoutEffect(() => {
     if (lastImageRef.current) {
@@ -67,17 +77,29 @@ function ImageContainer() {
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
       if (contentWidth === 0) return;
 
       setIsScrolling(true);
-      e.preventDefault();
 
       const delta =
         (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) *
         SCROLL_SPEED;
 
-      loopImgs(delta);
-      console.log(xTranslation.get())
+      let current = xTranslation.get();
+      let next = current - delta;
+
+      const loopWidth = contentWidth / 2;
+
+      // Infinite scroll wrap
+      if (next < -loopWidth - WRAP_MARGIN) {
+        next += loopWidth;
+      } else if (next > WRAP_MARGIN) {
+        next -= loopWidth;
+      }
+
+      xTranslation.set(next);
+      console.log(xTranslation.get());
 
       if (scrollTimeout.current) {
         clearTimeout(scrollTimeout.current);
@@ -97,19 +119,19 @@ function ImageContainer() {
   useEffect(() => {
     const updateWidth = () => {
       if (lastImageRef.current) {
+        console.log("help");
         const newWidth = lastImageRef.current.clientWidth;
         const oldWidth = prevImgWidthRef.current;
         const screenWidthWindow = window.innerWidth;
         const isLaptop =
           screenWidthWindow < SCREEN_WIDTHS.DESKTOP &&
           screenWidthWindow > SCREEN_WIDTHS.TABLET;
+        console.log(oldWidth, newWidth);
 
-        if (oldWidth !== newWidth && oldWidth) {
+        if (oldWidth) {
           setIsScrolling(false);
-          console.log('width changed')
-          // const offsets = {
-          //   selected: screenWidthWindow > SCREEN_WIDTHS.DESKTOP ? 2 : 1,
-          // };
+          console.log("width changed");
+
           let currentIndexNotSelected = Math.round(
             xTranslation.get() / oldWidth
           );
@@ -117,12 +139,18 @@ function ImageContainer() {
           let selectedIndex = selectedImgRef.current;
           const currentIndex =
             selectedIndex !== null ? selectedIndex : currentIndexNotSelected;
+            console.log(currentIndex)
+
           let snapped = isLaptop
             ? currentIndex * newWidth - (screenWidthWindow - newWidth) / 2
             : currentIndex * newWidth;
-          xTranslation.set(snapped);
+
+          animate(xTranslation, snapped, {
+            type: "tween",
+            duration: 0.3
+          });
         }
-        // Aggiorna i riferimenti
+
         prevImgWidthRef.current = newWidth;
       }
     };
@@ -152,66 +180,42 @@ function ImageContainer() {
     setSelectedImg(null);
   };
 
-  // const onDragEnd = (e: MouseEvent, info: PanInfo) => {
-  //   setIsDragging(false);
-  //   setSelectedImg(null);
+  const onDragEnd = async (_e: MouseEvent, info: PanInfo) => {
+    if (lastImageRef.current === null) return;
+    setIsDragging(false);
+    const imgWidth = lastImageRef.current.clientWidth;
+    const { offset } = info;
 
-  //   const { offset } = info;
+    if (imgWidth) {
+      let target = xTranslation.get();
 
-  //   if (currentImgWidth) {
-  //     const forward = xTranslation.get() - currentImgWidth;
-  //     const backwards = xTranslation.get() + currentImgWidth;
-  //     if (offset.x > 1) {
-  //       xTranslation.set(backwards);
-  //     } else if (offset.x < -1) {
-  //       xTranslation.set(forward);
-  //     }
-  //     snapToCenterMotion();
-  //   }
-  // };
+      if (offset.x < -50) {
+        target -= imgWidth + offset.x;
+      } else if (offset.x > 50) {
+        target += imgWidth - offset.x;
+      }
 
-  // const handleDragEnd = (event: MouseEvent | TouchEvent, info: any) => {
-  //   const dragOffset = info.offset.x; // Total distance dragged horizontally
-  //   if (!currentImgWidth) return;
-  //   let targetDelta = 0; // This will be the delta we pass to loopImgs
-
-  //   if (dragOffset > 20) {
-  //     targetDelta = currentImgWidth;
-  //   } else if (dragOffset < -20) {
-  //     targetDelta = -currentImgWidth;
-  //   }
-
-  //   if (targetDelta !== 0) {
-  //     loopImgs(targetDelta);
-  //   }
-  //   scrollTimeout.current = window.setTimeout(() => {
-  //     setIsScrolling(false);
-  //   }, 150); // Adjust delay as needed
-  // };
-
-  // const handleIndex = (index: number) => {
-  //   setImgIndex((prev) => {
-  //     const newIndexList = [...prev, index];
-  //     return newIndexList.slice(-3);
-  //   });
-  //   console.log(_imgIndex);
-  // };
-
-  const loopImgs = (delta: number) => {
-    let current = xTranslation.get();
-    let next = current - delta;
-
-    const loopWidth = contentWidth / 2;
-
-    // Infinite scroll wrap
-    if (next < -loopWidth) {
-      next += loopWidth;
-    } else if (next > 1) {
-      next -= loopWidth;
+      setIsAnimating(true); // Inizio animazione
+      await animate(xTranslation, target, {
+        type: "tween",
+        duration: 0.3,
+      });
+      setIsAnimating(false); // Fine animazione
     }
 
-    xTranslation.set(next);
+    snapToCenterMotion();
   };
+
+  useAnimationFrame(() => {
+    if (contentWidth === 0) return;
+
+    const loopWidth = contentWidth / 2;
+    const current = xTranslation.get();
+    const wrapped =
+      (((current % loopWidth) + loopWidth) % loopWidth) - loopWidth;
+
+    xTranslation.set(wrapped);
+  });
 
   // const getCenterIndex = (
   //   xTranslation: number,
@@ -268,38 +272,34 @@ function ImageContainer() {
   // };
 
   const snapToCenterMotion = () => {
+    if (!data || !lastImageRef.current) return;
     const oldWidth = prevImgWidthRef.current;
     const isResponsive =
       screenWidth < SCREEN_WIDTHS.DESKTOP && screenWidth > SCREEN_WIDTHS.TABLET;
-    if (!lastImageRef.current) return;
     const imgWidth = lastImageRef.current.clientWidth;
     // const offsets = {
     //   selected: screenWidth > SCREEN_WIDTHS.DESKTOP ? 2 : 1,
     // };
 
+    const x = xTranslation.get();
+
     setIsScrolling(false);
 
     if (oldWidth) {
-      let currentIndex = Math.round(xTranslation.get() / imgWidth);
-      if (currentIndex === -10) {
-        currentIndex = -0
-      }
-      console.log(currentIndex)
-
+      let currentIndex = Math.round(x / imgWidth);
       let snapped = isResponsive
         ? currentIndex * imgWidth - (screenWidth - imgWidth) / 2
         : currentIndex * imgWidth;
-      console.log(`snapped at ${snapped} index: ${currentIndex}`)
       xTranslation.set(snapped);
-      handleSelectedImg(currentIndex - 1);
+      console.log(`snapped at ${snapped} index: ${currentIndex}`);
+      setSelectedImg(currentIndex - 1);
+      console.log(`current index: ${currentIndex}`);
     }
-
-    console.log(selectedImg);
   };
 
   const handleSelectedImg = (index: number) => {
+    if (isDragging) return;
     setSelectedImg((prev) => (prev === index ? null : index));
-    console.log('selected')
   };
 
   // const scrollToImage = (index: number) => {
@@ -337,39 +337,109 @@ function ImageContainer() {
   //   }
   // };
 
-  const scrollToImgMotion = (newImgIndex: number) => {
-    const prevIndex = prevSelectedImgRef.current;
-    console.log("Previous:", prevIndex, "New:", newImgIndex);
+  // const scrollToImgMotion = (currentIndex: number, e: React.MouseEvent) => {
+  //   if (isAnimatingRef.current || isDragging || !data || !lastImageRef.current) return;
 
-    const step = lastImageRef.current?.clientWidth;
-    console.log(step);
+  //   isAnimatingRef.current = true;
+  //   setIsAnimating(true);
 
-    if (prevIndex !== null && step) {
-      if (newImgIndex < prevIndex) {
-        xTranslation.set(xTranslation.get() - step);
-        console.log("Moved forward" + xTranslation.get());
-      } else if (newImgIndex > prevIndex) {
-        xTranslation.set(xTranslation.get() + step);
-        console.log("Moved backward" + xTranslation.get());
-      } else {
-        console.log("Same image selected");
-      }
+  //   const step = lastImageRef.current.clientWidth;
+  //   const x = e.clientX;
+  //   const screenWidth = window.innerWidth;
+
+  //   let newValue = xTranslation.get();
+
+  //   if (x < screenWidth / 3) {
+  //     newValue += step;
+  //   } else if (x > (2 * screenWidth) / 3) {
+  //     newValue -= step;
+  //   } else {
+  //     // clic centrale
+  //     isAnimatingRef.current = false;
+  //     setIsAnimating(false);
+  //     return;
+  //   }
+
+  //   const controls = animate(xTranslation, newValue, {
+  //     type: "tween",
+  //     duration: 0.3,
+  //     ease: "easeOut",
+  //   });
+
+  //   // fallback in caso l’animazione venga interrotta
+  //   const reset = () => {
+  //     isAnimatingRef.current = false;
+  //     setIsAnimating(false);
+  //     snapToCenterMotion()
+  //   };
+
+  //   controls.finished.then(reset).catch(reset);
+
+  //   // fallback di sicurezza extra dopo tot ms
+  //   setTimeout(reset, 500);
+  // };
+
+
+  const scrollToImgMotion = async (
+    clickedIndex: number,
+    e: React.MouseEvent
+  ) => {
+    if (isDragging || !data || !lastImageRef.current || isAnimatingRef.current)
+      return;
+
+    const step = lastImageRef.current.clientWidth;
+    const totalItems = data.length;
+    const logicalClickedIndex = -clickedIndex;
+    console.log(logicalClickedIndex);
+
+    // Salva il selected precedente se presente
+    // if (selectedImg !== null) {
+    //   prevSelectedImgRef.current = selectedImg;
+    // }
+
+    const indx = prevSelectedImgRef.current ?? 0;
+
+    // if (logicalClickedIndex === indx) {
+    //   setSelectedImg(logicalClickedIndex);
+    //   return;
+    // }
+
+    let diff = logicalClickedIndex - indx;
+
+    // Gestione loop infinito
+    if (diff > totalItems / 2) diff -= totalItems;
+    if (diff < -totalItems / 2) diff += totalItems;
+
+    const delta = diff * step;
+
+    try {
+      await animate(xTranslation, xTranslation.get() + delta, {
+        ease: "easeOut",
+        type: "tween",
+        duration: 0.4,
+      });
+
+      setImgIndex((prev) => prev + diff);
+      setSelectedImg(logicalClickedIndex);
+      snapToCenterMotion();
+    } catch (error) {
+      console.warn("Animation error:", error);
     }
 
-    prevSelectedImgRef.current = newImgIndex;
-    console.log(newImgIndex)
+    console.log({
+      logicalClickedIndex,
+      selectedImg,
+    });
   };
 
   const getScale = (index: number): number => {
     // console.log(`selected image: ${selectedImg} index: ${index}`)
     if (isScrolling || isDragging) return 1.1;
-
     if (selectedImg !== null) {
       if (selectedImg === index) return 1.2;
       if (hoveredImg === index) return 1.1;
       return 0.9;
     }
-
     if (hoveredImg !== null) {
       return hoveredImg === index ? 1.1 : 0.9;
     }
@@ -386,12 +456,12 @@ function ImageContainer() {
         // animate={{
         //   x: -xTranslation,
         // }}
-        transition={{
-          type: "tween",
-          duration: 0.5,
-          ease: "easeOut",
-        }}
-        // onDragEnd={handleDragEnd}
+        // transition={{
+        //   type: "tween",
+        //   duration: 0.5,
+        //   ease: "easeOut",
+        // }}
+        onDragEnd={onDragEnd}
         onDragStart={onDragStart}
         drag="x"
         dragConstraints={dragRef}
@@ -409,9 +479,9 @@ function ImageContainer() {
               return (
                 <motion.div
                   animate={{ scale: getScale(-index) }}
-                  onClick={() => {
-                    handleSelectedImg(-index)
-                    scrollToImgMotion(-index);
+                  onClick={(e) => {
+                    handleSelectedImg(-index);
+                    scrollToImgMotion(index, e);
                   }}
                   className={styles.singleImg}
                   key={key}
@@ -423,11 +493,11 @@ function ImageContainer() {
                   }}
                 >
                   <motion.div
-                    // animate={{
-                    //   marginInline: `${
-                    //     selectedImg === index ? "3.5rem" : "2.75rem"
-                    //   }`,
-                    // }}
+                  // animate={{
+                  //   marginInline: `${
+                  //     selectedImg === index ? "3.5rem" : "2.75rem"
+                  //   }`,
+                  // }}
                   >
                     <motion.div
                       onMouseEnter={() => setHoveredImg(-index)}
@@ -435,7 +505,6 @@ function ImageContainer() {
                       className={
                         index % 2 === 0 ? styles.bigImg : styles.smallImg
                       }
-                      // onViewportEnter={() => handleIndex(index)}
                     >
                       <Image
                         src={img.download_url}
