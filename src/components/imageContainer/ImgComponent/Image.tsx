@@ -1,11 +1,12 @@
 import type { ImageProps } from "../../../lib/types";
 import { motion } from "motion/react";
 
-export default function Image({ src, alt, width, height }: ImageProps) {
+export default function ImageComponent({ src, alt, width, height }: ImageProps) {
   return (
-    <div>
+    <>
       <motion.img
         layout
+        fetchPriority="high"
         src={src}
         alt={alt}
         width={width}
@@ -15,6 +16,6 @@ export default function Image({ src, alt, width, height }: ImageProps) {
           e.currentTarget.src = "https://placehold.co/600x450";
         }}
       />
-    </div>
+    </>
   );
 }

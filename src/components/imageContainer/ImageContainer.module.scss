@@ -2,11 +2,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 3rem;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   position: relative;
 }
+
+// img {
+//   user-select: none;
+// }
+
 
 
 
@@ -15,6 +19,8 @@
   width: 33.3vw;
   align-items: center;
   justify-content: center;
+  will-change: transform;
+  transform-origin: center ;
 
   .singleImg img {
     object-fit: cover;
@@ -23,7 +29,6 @@
     max-height: 100%;
   }
 }
-
 
 .content {
   position: absolute;
@@ -46,7 +51,7 @@
 
 @media (width < 1025px) {
   .singleImg {
-    width: 45%;
+    width: 67vw;
   }
 }
 
