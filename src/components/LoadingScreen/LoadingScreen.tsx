@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 function LoadingScreen() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShow(false), 1500); // Durata animazione
+    const timer = setTimeout(() => setShow(false), 2000); // Durata animazione
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <AnimatePresence>
+    <>
       {show && (
         <motion.div
           initial={{ y: 0}}
@@ -35,7 +35,7 @@ function LoadingScreen() {
             Kombu
         </motion.div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
 

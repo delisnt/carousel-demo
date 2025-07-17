@@ -3,6 +3,7 @@ export interface ImageProps {
     alt: string,
     width: number,
     height: number,
+    scale: number
 }
 
 export type Index = {
