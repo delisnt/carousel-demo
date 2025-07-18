@@ -1,20 +1,6 @@
 import { useState, useEffect } from "react";
-import type { ImageType } from "../lib/types";
+import type { ApiResult } from "../lib/types";
 
-interface ApiResult {
-    "id": number,
-    "url": string,
-    "rating": string,
-    "color_dominant": number[
-    ],
-    "color_palette": number[][
-
-    ],
-    "artist_name": null | string,
-    "tags": string[
-    ],
-    "source_url": null | string
-}
 
 const mockRequest = (): Promise<{items: ApiResult[]}> => {
   return new Promise(resolve => {
@@ -665,6 +651,7 @@ const mockRequest = (): Promise<{items: ApiResult[]}> => {
             }
         ],
     })
+    console.log("timeout ended")
     }, 2000);
   })
 }

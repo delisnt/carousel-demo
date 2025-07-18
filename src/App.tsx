@@ -4,19 +4,25 @@ import styles from "./app.module.scss";
 import { useEffect, useState } from "react";
 import { useFetch } from "./hooks/useFetch";
 import { getWrappedSlice } from "./lib/utils";
+import { AnimatePresence } from "motion/react";
 
 function App() {
   const url = `https://api.nekosapi.com/v4/images?limit=10`;
   const [selectedItem, setSelectedItem] = useState<number | null>(2);
   const [visibleArray, setVisibleArray] = useState<number[]>([]);
   const [preloadedImgs, setPreloadedImgs] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const { data } = useFetch(url);
+  const [slideDirection, setSlideDirection] = useState<
+    "right" | "left" | "center"
+  >("right");
+
+  const { data, isPending } = useFetch(url);
+  console.log({ isPending });
   const MEDIA_SCREEN = {
     tablet: 768,
     mobile: 600,
   };
 
+  // TODO FINISCI LIFT STATE
 
   useEffect(() => {
     if (!data || visibleArray.length === 0) {
@@ -67,10 +73,49 @@ function App() {
     preloadImages();
   }, [visibleArray]);
 
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+    const startingVisible = data.slice(0, 5).map((item) => item.id);
+    setVisibleArray(startingVisible);
+    setSelectedItem(startingVisible[2]);
+  }, [data]);
+
+  const handleNavigation = (
+    direction: "left" | "right" | "center",
+    visibleArr: number[] | null,
+    id: number | null
+  ) => {
+    setSlideDirection(direction);
+
+    if (direction === "center") {
+      setSelectedItem(id);
+      return;
+    }
+    if (id !== null && visibleArr !== null) {
+      setVisibleArray(visibleArr);
+      setSelectedItem(id);
+    } else {
+      console.warn(
+        "ID or visibleArray missing for 'left' or 'right' navigation."
+      );
+    }
+  };
+
   return (
     <main className={styles.mainContainer}>
-      <LoadingScreen />
-      <ImageContainer />
+      <AnimatePresence mode="wait">
+        {data && (
+          <ImageContainer
+            data={data}
+            handleNavigation={handleNavigation}
+            preloadedImgs={preloadedImgs}
+            selectedItem={selectedItem}
+            sliderDirection={slideDirection}
+            visibleArray={visibleArray}
+          />
+        )}
+        {isPending && <LoadingScreen key="appLoadingScreen" />}
+      </AnimatePresence>
     </main>
   );
 }

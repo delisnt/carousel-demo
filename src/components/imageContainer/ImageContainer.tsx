@@ -4,89 +4,34 @@ import {
   useMotionValue,
   type PanInfo,
 } from "motion/react";
-import { useFetch } from "../../hooks/useFetch";
 import styles from "./ImageContainer.module.scss";
 import ImageComponent from "./ImgComponent/Image";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useThrottle } from "../../hooks/useThrottle";
+import { getWrappedSlice } from "../../lib/utils";
+import type { ImageContainerProps } from "../../lib/types";
 
-function ImageContainer() {
-  const url = `https://api.nekosapi.com/v4/images?limit=10`;
-  const { data } = useFetch(url);
-  const [selectedItem, setSelectedItem] = useState<number | null>(2);
+function ImageContainer({
+  selectedItem,
+  data,
+  visibleArray,
+  preloadedImgs,
+  sliderDirection,
+  handleNavigation,
+}: ImageContainerProps) {
   const [hoveredImg, setHoveredImg] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [visibleArray, setVisibleArray] = useState<number[]>([]);
-  const [preloadedImgs, setPreloadedImgs] = useState<number[]>([]);
   const controls = useDragControls();
   const containerRef = useRef<HTMLDivElement>(null);
-  const slideDirectionRef = useRef<"right" | "left">("right");
   const imagesRef = useRef<HTMLDivElement>(null);
   const thresholdRef = useRef(1);
   const timeoutRef = useRef<number | null>(null);
   const isLocked = useRef(false);
   const [_first, second, center, fourth, _last] = visibleArray;
   const x = useMotionValue(0);
-  const MEDIA_SCREEN = {
-    tablet: 768,
-    mobile: 600,
-  };
 
   console.log("Visible Images IDs:", visibleArray);
   console.log("Preloaded Images IDs:", preloadedImgs);
-
-  useEffect(() => {
-    if (!data || data.length === 0) return;
-    const startingVisible = data.slice(0, 5).map((item) => item.id);
-    setVisibleArray(startingVisible);
-    setSelectedItem(startingVisible[2]);
-  }, [data]);
-
-  // useEffect(() => {
-  //   if (!data || visibleArray.length === 0) {
-  //     return;
-  //   }
-  //   const width = window.innerWidth;
-  //   const isMobile = width <= MEDIA_SCREEN.mobile;
-  //   const preloadRange = isMobile ? 2 : 3;
-  //   const centerIndex = data.findIndex((img) => img.id === selectedItem);
-  //   const newPreloadedIds = getWrappedSlice(
-  //     data.map((_, i) => i),
-  //     centerIndex,
-  //     preloadRange
-  //   );
-  //   const preloadIds = newPreloadedIds.map((i) => data[i].id);
-  //   setPreloadedImgs(preloadIds);
-
-  //   const filteredData = newPreloadedIds.map((index) => data[index]);
-  //   console.log(filteredData);
-
-  //   const preloadImages = async () => {
-  //     try {
-  //       const imgPromises = filteredData.map((img) => {
-  //         return new Promise((res, rej) => {
-  //           const imgObj = new Image();
-  //           imgObj.src = img.url;
-  //           imgObj.fetchPriority = "high";
-  //           imgObj.onload = () => {
-  //             res(imgObj);
-  //           };
-  //           imgObj.onerror = () =>
-  //             rej(new Error("could not fetch image: " + img.url));
-  //         });
-  //       });
-  //       console.log("Preloading:", newPreloadedIds.map(id => data[id]?.id));
-  //       console.log("Rendering visible:", visibleArray);
-
-  //       const images = await Promise.all(imgPromises);
-  //       console.log(images);
-  //     } catch (err) {
-  //       console.error("Errore durante il preload:", err);
-  //     }
-  //   };
-
-  //   preloadImages();
-  // }, [visibleArray]);
 
   const getImgToRemove = (
     delta: number,
@@ -108,10 +53,17 @@ function ImageContainer() {
     offset: number,
     animation: "exit" | "initial" | "animate"
   ) => {
+    if (sliderDirection === "center") {
+      return {
+        x: 0,
+        opacity: 1,
+      };
+    }
+
     switch (animation) {
       case "initial":
         return {
-          x: slideDirectionRef.current === "right" ? offset : -offset,
+          x: sliderDirection === "right" ? offset : -offset,
           opacity: 0,
         };
 
@@ -123,22 +75,12 @@ function ImageContainer() {
 
       case "exit":
         return {
-          x: slideDirectionRef.current === "right" ? -offset : offset,
+          x: sliderDirection === "right" ? -offset : offset,
           opacity: 0,
         };
       default:
         return {};
     }
-  };
-
-  const handleNavigation = (
-    id: number,
-    visibleArr: number[],
-    direction: "left" | "right"
-  ) => {
-    setVisibleArray(visibleArr);
-    setSelectedItem(id);
-    slideDirectionRef.current = direction;
   };
 
   const handleVisibleArray = (id: number) => {
@@ -158,33 +100,16 @@ function ImageContainer() {
 
     // Determina direzione
     if (id === second) {
-      handleNavigation(id, newArray, "left");
+      handleNavigation('left', newArray, id);
     } else if (id === fourth) {
-      handleNavigation(id, newArray, "right");
+      handleNavigation('right', newArray, id);
     } else if (id === center) {
-      setSelectedItem((prev) => (prev === id ? null : id));
+      handleNavigation('center', null, null);
     }
 
     setTimeout(() => {
       isLocked.current = false;
     }, 300);
-  };
-
-  const getWrappedSlice = (
-    arr: number[],
-    centerIndex: number,
-    range: number
-  ) => {
-    const result = [];
-    const len = arr.length;
-
-    for (let offset = -range; offset <= range; offset++) {
-      const i = (centerIndex + offset + len) % len;
-      console.log(i);
-      result.push(arr[i]);
-    }
-
-    return result;
   };
 
   const handleDragEnd = (_e: MouseEvent, info: PanInfo) => {
@@ -259,7 +184,7 @@ function ImageContainer() {
             const entryOffset =
               imagesRef.current?.clientWidth || FALLBACK_ENTRY_OFFSET;
             const img2 = data.find((item) => item.id === element);
-            
+
             if (!img2) return;
             let imgId = img2.id;
             return (
